@@ -10,3 +10,22 @@ spec:
   name: rhsso-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace
+---
+apiVersion: keycloak.org/v1alpha1
+kind: Keycloak
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+  name: sso
+  labels:
+    app: sso
+  namespace: {{ .Values.projectName | quote }}
+spec:
+  externalAccess:
+    enabled: true
+    host: {{ .Values.sso.hostname | quote }}
+  keycloakDeploymentSpec:
+    imagePullPolicy: Always
+  postgresDeploymentSpec:
+    imagePullPolicy: Always
+  instances: 1
