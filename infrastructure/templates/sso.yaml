@@ -188,6 +188,7 @@ spec:
   tls:
     termination: reencrypt
   to:
+    kind: Service
     name: sso
 ---
 apiVersion: apps.openshift.io/v1
