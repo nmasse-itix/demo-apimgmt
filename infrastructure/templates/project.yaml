@@ -29,10 +29,5 @@ metadata:
   namespace: {{ .Values.projectName | quote }}
 type: Opaque
 data:
-  # Taken from https://itnext.io/manage-auto-generated-secrets-in-your-helm-charts-5aee48ba6918
-  {{- $secretObj := (lookup "v1" "Secret" .Release.Namespace "demo-seed") | default dict }}
-  {{- $secretData := (get $secretObj "data") | default dict }}
-  {{- $ssoAdminPassword := (get $secretData "sso-admin-password") | default (randAlphaNum 16 | b64enc) }}
-  sso-admin-password: {{ $ssoAdminPassword | quote }}
-  {{- $ssoDatabasePassword := (get $secretData "sso-database-password") | default (randAlphaNum 16 | b64enc) }}
-  sso-database-password: {{ $ssoDatabasePassword | quote }}
+  sso-admin-password: {{ derivePassword 1 "long" .Values.masterKey "sso" "sso-admin-password" | quote }}
+  sso-database-password: {{ derivePassword 1 "long" .Values.masterKey "sso" "sso-database-password" | quote }}
