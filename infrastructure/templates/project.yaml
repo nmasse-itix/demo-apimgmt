@@ -21,3 +21,16 @@ metadata:
 spec:
   targetNamespaces:
   - {{ .Values.projectName | quote }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: demo-seed
+  namespace: {{ .Values.projectName | quote }}
+type: Opaque
+data:
+  # Taken from https://itnext.io/manage-auto-generated-secrets-in-your-helm-charts-5aee48ba6918
+  {{- $secretObj := (lookup "v1" "Secret" .Release.Namespace "demo-seed") | default dict }}
+  {{- $secretData := (get $secretObj "data") | default dict }}
+  {{- $ssoAdminPassword := (get $secretData "sso-admin-password") | default (randAlphaNum 16 | b64enc) }}
+  sso-admin-password: {{ $ssoAdminPassword | quote }}
