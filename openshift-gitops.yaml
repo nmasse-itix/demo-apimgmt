@@ -3,8 +3,14 @@ kind: ClusterRole
 metadata:
   name: demo-apimgmt-gitops
 rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["*"]
 - apiGroups: ["project.openshift.io"]
   resources: ["projects"]
+  verbs: ["*"]
+- apiGroups: ["keycloak.org"]
+  resources: ["keycloaks"]
   verbs: ["*"]
 ---
 kind: ClusterRoleBinding

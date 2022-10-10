@@ -29,5 +29,5 @@ metadata:
   namespace: {{ .Values.projectName | quote }}
 type: Opaque
 data:
-  sso-admin-password: {{ derivePassword 1 "long" .Values.masterKey "sso" "sso-admin-password" | b64enc | quote }}
-  sso-database-password: {{ derivePassword 1 "long" .Values.masterKey "sso" "sso-database-password" | b64enc | quote }}
+  sso-admin-password: {{ trunc 16 (sha256sum (cat .Values.masterKey "sso-admin-password")) | b64enc | quote }}
+  sso-database-password: {{ trunc 16 (sha256sum (cat .Values.masterKey "sso-database-password")) | b64enc | quote }}
