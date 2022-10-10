@@ -135,7 +135,6 @@ spec:
       from:
         kind: ImageStreamTag
         name: postgresql13-for-sso76-openshift-rhel8:13-el8
-        namespace: openshift
     type: Source
   triggers:
   - imageChange: {}
