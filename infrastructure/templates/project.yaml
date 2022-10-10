@@ -10,3 +10,14 @@ metadata:
 spec:
   finalizers:
   - kubernetes
+---
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  name: {{ .Values.projectName | quote }}
+  namespace: {{ .Values.projectName | quote }}
+spec:
+  targetNamespaces:
+  - {{ .Values.projectName | quote }}

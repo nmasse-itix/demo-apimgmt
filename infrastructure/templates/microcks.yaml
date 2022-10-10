@@ -1,14 +1,3 @@
-apiVersion: operators.coreos.com/v1
-kind: OperatorGroup
-metadata:
-  annotations:
-    argocd.argoproj.io/sync-wave: "10"
-  name: microcks
-  namespace: {{ .Values.projectName | quote }}
-spec:
-  targetNamespaces:
-  - {{ .Values.projectName | quote }}
----
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
