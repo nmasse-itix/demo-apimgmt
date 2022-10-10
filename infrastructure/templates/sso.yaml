@@ -173,7 +173,6 @@ spec:
     deploymentConfig: sso
 ---
 apiVersion: route.openshift.io/v1
-id: sso-https
 kind: Route
 metadata:
   annotations:
@@ -364,7 +363,7 @@ spec:
         livenessProbe:
           failureThreshold: 3
           initialDelaySeconds: 90
-          'successThreshold:': 1
+          successThreshold: 1
           tcpSocket:
             port: 5432
           timeoutSeconds: 10
@@ -382,7 +381,7 @@ spec:
               -c 'SELECT 1'
           failureThreshold: 3
           initialDelaySeconds: 90
-          'successThreshold:': 1
+          successThreshold: 1
           timeoutSeconds: 10
         volumeMounts:
         - mountPath: /var/lib/pgsql/data
