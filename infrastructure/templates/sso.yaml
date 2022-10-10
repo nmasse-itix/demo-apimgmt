@@ -4,6 +4,7 @@ metadata:
   name: postgresql13-for-sso76-openshift-rhel8
   creationTimestamp: null
   annotations:
+    argocd.argoproj.io/sync-wave: "5"
     openshift.io/display-name: PostgreSQL
   namespace: {{ .Values.projectName | quote }}
 spec:
@@ -33,6 +34,7 @@ apiVersion: image.openshift.io/v1
 metadata:
   name: sso76-openshift-rhel8
   annotations:
+    argocd.argoproj.io/sync-wave: "5"
     description: Red Hat Single Sign-On 7.6 on OpenJDK
     openshift.io/display-name: Red Hat Single Sign-On 7.6 on OpenJDK
     openshift.io/provider-display-name: Red Hat, Inc.
@@ -64,6 +66,7 @@ apiVersion: v1
 kind: Service
 metadata:
   annotations:
+    argocd.argoproj.io/sync-wave: "5"
     description: The web server's https port.
     service.alpha.openshift.io/dependencies: '[{"name": "sso-postgresql", "kind":
       "Service"}]'
@@ -90,6 +93,8 @@ metadata:
     template: sso76-x509-postgresql-persistent
   name: sso-postgresql-ssl
   namespace: {{ .Values.projectName | quote }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
 ---
 apiVersion: build.openshift.io/v1
 kind: BuildConfig
@@ -97,6 +102,7 @@ metadata:
   annotations:
     description: Build config to extend the vanilla PostgreSQL SQL database server
       container image with SSL/TLS support.
+    argocd.argoproj.io/sync-wave: "5"
   labels:
     application: sso
     rhsso: 7.6.0.GA
@@ -135,6 +141,7 @@ apiVersion: v1
 kind: Service
 metadata:
   annotations:
+    argocd.argoproj.io/sync-wave: "5"
     description: The database server's port.
     service.alpha.openshift.io/serving-cert-secret-name: postgresql-ssl-secret
   labels:
@@ -154,6 +161,7 @@ apiVersion: v1
 kind: Service
 metadata:
   annotations:
+    argocd.argoproj.io/sync-wave: "5"
     description: The JGroups ping port for clustering.
     service.alpha.openshift.io/serving-cert-secret-name: sso-x509-jgroups-secret
   labels:
@@ -175,6 +183,7 @@ apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
   annotations:
+    argocd.argoproj.io/sync-wave: "5"
     description: Route for application's https service.
   labels:
     application: sso
@@ -193,6 +202,8 @@ spec:
 apiVersion: apps.openshift.io/v1
 kind: DeploymentConfig
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
   labels:
     application: sso
     rhsso: 7.6.0.GA
@@ -326,6 +337,8 @@ spec:
 apiVersion: apps.openshift.io/v1
 kind: DeploymentConfig
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
   labels:
     application: sso
     rhsso: 7.6.0.GA
@@ -386,6 +399,9 @@ spec:
           initialDelaySeconds: 90
           successThreshold: 1
           timeoutSeconds: 10
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
         volumeMounts:
         - mountPath: /var/lib/pgsql/data
           name: sso-postgresql-pvol
@@ -393,9 +409,6 @@ spec:
           name: postgresql-ssl-volume
           readOnly: true
       terminationGracePeriodSeconds: 60
-      resources: {}
-      terminationMessagePath: /dev/termination-log
-      terminationMessagePolicy: File
       volumes:
       - name: sso-postgresql-pvol
         persistentVolumeClaim:
@@ -417,6 +430,8 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
   labels:
     application: sso
     rhsso: 7.6.0.GA
