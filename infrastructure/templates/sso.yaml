@@ -334,7 +334,6 @@ spec:
       from:
         kind: ImageStreamTag
         name: sso76-openshift-rhel8:7.6
-        namespace: openshift
     type: ImageChange
   - type: ConfigChange
 ---
