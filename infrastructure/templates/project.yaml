@@ -34,3 +34,5 @@ data:
   {{- $secretData := (get $secretObj "data") | default dict }}
   {{- $ssoAdminPassword := (get $secretData "sso-admin-password") | default (randAlphaNum 16 | b64enc) }}
   sso-admin-password: {{ $ssoAdminPassword | quote }}
+  {{- $ssoDatabasePassword := (get $secretData "sso-database-password") | default (randAlphaNum 16 | b64enc) }}
+  sso-database-password: {{ $ssoDatabasePassword | quote }}
