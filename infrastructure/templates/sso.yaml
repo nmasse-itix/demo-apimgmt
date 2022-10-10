@@ -44,10 +44,6 @@ metadata:
     rhsso: 7.6.0.GA
 spec:
   tags:
-  - name: latest
-    from:
-      kind: ImageStreamTag
-      name: '7.6'
   - name: '7.6'
     annotations:
       description: Red Hat Single Sign-On 7.6 on OpenJDK image
@@ -61,6 +57,15 @@ spec:
     from:
       kind: DockerImage
       name: registry.redhat.io/rh-sso-7/sso76-openshift-rhel8:7.6
+    importPolicy: {}
+  - annotations: null
+    importPolicy: {}	
+    name: latest
+    from:
+      kind: ImageStreamTag
+      name: '7.6'
+    referencePolicy:	
+      type: Source	
 ---
 apiVersion: v1
 kind: Service
