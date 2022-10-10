@@ -1,0 +1,12 @@
+apiVersion: project.openshift.io/v1
+kind: Project
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    openshift.io/display-name: "Demo API Management"
+  labels:
+    kubernetes.io/metadata.name: {{ projectName | quote }}
+  name: {{ projectName | quote }}
+spec:
+  finalizers:
+  - kubernetes

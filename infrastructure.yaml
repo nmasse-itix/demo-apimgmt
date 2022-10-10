@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: demo-apimgmt-infra
+  namespace: openshift-gitops
+spec:
+  destination:
+    name: ''
+    server: 'https://kubernetes.default.svc'
+  source:
+    path: infrastructure
+    repoURL: 'https://github.com/nmasse-itix/demo-apimgmt.git'
+    targetRevision: gitops
+    helm:
+      valueFiles:                                                                                                                                                                                                                                                                         
+      - infrastructure-values.yaml
+  project: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: false

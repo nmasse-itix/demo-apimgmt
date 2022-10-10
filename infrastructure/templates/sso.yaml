@@ -1,26 +1,13 @@
-apiVersion: project.openshift.io/v1
-kind: Project
-metadata:
-  annotations:
-    argocd.argoproj.io/sync-wave: "0"
-    openshift.io/display-name: "Single Sign On"
-  labels:
-    kubernetes.io/metadata.name: sso
-  name: sso
-spec:
-  finalizers:
-  - kubernetes
----
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "10"
   name: sso
-  namespace: sso
+  namespace: {{ projectName | quote }}
 spec:
   targetNamespaces:
-  - sso
+  - {{ projectName | quote }}
 ---
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
@@ -28,7 +15,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "10"
   name: rhsso-operator
-  namespace: sso
+  namespace: {{ projectName | quote }}
 spec:
   channel: stable
   name: rhsso-operator
