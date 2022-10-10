@@ -12,8 +12,11 @@ spec:
     repoURL: 'https://github.com/nmasse-itix/demo-apimgmt.git'
     targetRevision: gitops
     helm:
-      valueFiles:                                                                                                                                                                                                                                                                         
+      valueFiles:
       - ../infrastructure-values.yaml
+      parameters:
+      - name: masterKey
+        value: my-secret-value
   project: default
   syncPolicy:
     automated:
