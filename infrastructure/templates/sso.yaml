@@ -73,6 +73,7 @@ metadata:
     rhsso: 7.6.0.GA
     template: sso76-x509-postgresql-persistent
   name: sso
+  namespace: {{ .Values.projectName | quote }}
 spec:
   ports:
   - port: 8443
@@ -88,6 +89,7 @@ metadata:
     rhsso: 7.6.0.GA
     template: sso76-x509-postgresql-persistent
   name: sso-postgresql-ssl
+  namespace: {{ .Values.projectName | quote }}
 ---
 apiVersion: build.openshift.io/v1
 kind: BuildConfig
@@ -100,6 +102,7 @@ metadata:
     rhsso: 7.6.0.GA
     template: sso76-x509-postgresql-persistent
   name: sso-postgresql-enable-ssl
+  namespace: {{ .Values.projectName | quote }}
 spec:
   output:
     to:
@@ -140,6 +143,7 @@ metadata:
     rhsso: 7.6.0.GA
     template: sso76-x509-postgresql-persistent
   name: sso-postgresql
+  namespace: {{ .Values.projectName | quote }}
 spec:
   ports:
   - port: 5432
@@ -158,6 +162,7 @@ metadata:
     rhsso: 7.6.0.GA
     template: sso76-x509-postgresql-persistent
   name: sso-ping
+  namespace: {{ .Values.projectName | quote }}
 spec:
   clusterIP: None
   ports:
@@ -178,6 +183,7 @@ metadata:
     rhsso: 7.6.0.GA
     template: sso76-x509-postgresql-persistent
   name: sso
+  namespace: {{ .Values.projectName | quote }}
 spec:
   host: {{ .Values.sso.hostname | quote }}
   tls:
@@ -193,6 +199,7 @@ metadata:
     rhsso: 7.6.0.GA
     template: sso76-x509-postgresql-persistent
   name: sso
+  namespace: {{ .Values.projectName | quote }}
 spec:
   replicas: 1
   selector:
@@ -321,6 +328,7 @@ metadata:
     rhsso: 7.6.0.GA
     template: sso76-x509-postgresql-persistent
   name: sso-postgresql
+  namespace: {{ .Values.projectName | quote }}
 spec:
   replicas: 1
   selector:
@@ -409,6 +417,7 @@ metadata:
     rhsso: 7.6.0.GA
     template: sso76-x509-postgresql-persistent
   name: sso-postgresql-claim
+  namespace: {{ .Values.projectName | quote }}
 spec:
   accessModes:
   - ReadWriteOnce
