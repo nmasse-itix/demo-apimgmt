@@ -13,7 +13,7 @@ spec:
     targetRevision: gitops
     helm:
       valueFiles:                                                                                                                                                                                                                                                                         
-      - infrastructure-values.yaml
+      - ../infrastructure-values.yaml
   project: default
   syncPolicy:
     automated:

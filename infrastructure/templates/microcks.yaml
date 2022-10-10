@@ -4,10 +4,10 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "10"
   name: microcks
-  namespace: {{ projectName | quote }}
+  namespace: {{ .Values.projectName | quote }}
 spec:
   targetNamespaces:
-  - {{ projectName | quote }}
+  - {{ .Values.projectName | quote }}
 ---
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
@@ -15,7 +15,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "10"
   name: microcks
-  namespace: {{ projectName | quote }}
+  namespace: {{ .Values.projectName | quote }}
 spec:
   channel: stable
   name: microcks
