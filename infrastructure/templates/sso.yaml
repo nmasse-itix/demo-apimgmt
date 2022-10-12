@@ -1,85 +1,14 @@
-kind: ImageStream
-apiVersion: image.openshift.io/v1
-metadata:
-  name: postgresql13-for-sso76-openshift-rhel8
-  creationTimestamp: null
-  annotations:
-    argocd.argoproj.io/sync-wave: "5"
-    openshift.io/display-name: PostgreSQL
-  namespace: {{ .Values.projectName | quote }}
-spec:
-  lookupPolicy:
-    local: false
-  tags:
-  - name: 13-el8
-    annotations:
-      description: Provides a PostgreSQL 13 database on RHEL 8. For more information
-        about using this database image, including OpenShift considerations, see
-        https://github.com/sclorg/postgresql-container/blob/master/README.md.
-      iconClass: icon-postgresql
-      openshift.io/display-name: PostgreSQL 13 (RHEL 8)
-      openshift.io/provider-display-name: Red Hat, Inc.
-      tags: database,postgresql
-      version: '13'
-    from:
-      kind: DockerImage
-      name: registry.redhat.io/rhel8/postgresql-13:latest
-    generation: null
-    importPolicy: {}
-    referencePolicy:
-      type: Local
----
-kind: ImageStream
-apiVersion: image.openshift.io/v1
-metadata:
-  name: sso76-openshift-rhel8
-  annotations:
-    argocd.argoproj.io/sync-wave: "5"
-    description: Red Hat Single Sign-On 7.6 on OpenJDK
-    openshift.io/display-name: Red Hat Single Sign-On 7.6 on OpenJDK
-    openshift.io/provider-display-name: Red Hat, Inc.
-    version: 7.6.0.GA
-  namespace: {{ .Values.projectName | quote }}
-  labels:
-    rhsso: 7.6.0.GA
-spec:
-  tags:
-  - name: '7.6'
-    annotations:
-      description: Red Hat Single Sign-On 7.6 on OpenJDK image
-      iconClass: icon-sso
-      tags: sso,keycloak,redhat,hidden
-      supports: sso:7.6
-      version: '1.0'
-      openshift.io/display-name: Red Hat Single Sign-On 7.6 on OpenJDK
-    referencePolicy:
-      type: Local
-    from:
-      kind: DockerImage
-      name: registry.redhat.io/rh-sso-7/sso76-openshift-rhel8:7.6
-    importPolicy: {}
-  - annotations: null
-    importPolicy: {}	
-    name: latest
-    from:
-      kind: ImageStreamTag
-      name: '7.6'
-    referencePolicy:	
-      type: Source	
----
 apiVersion: v1
 kind: Service
 metadata:
   annotations:
-    argocd.argoproj.io/sync-wave: "5"
-    description: The web server's https port.
-    service.alpha.openshift.io/dependencies: '[{"name": "sso-postgresql", "kind":
-      "Service"}]'
+    argocd.argoproj.io/sync-wave: "10"
     service.alpha.openshift.io/serving-cert-secret-name: sso-x509-https-secret
   labels:
-    application: sso
-    rhsso: 7.6.0.GA
-    template: sso76-x509-postgresql-persistent
+    app.kubernetes.io/name: sso
+    app.kubernetes.io/version: '7.6.0.GA'
+    app.kubernetes.io/component: keycloak
+    app.kubernetes.io/instance: keycloak
   name: sso
   namespace: {{ .Values.projectName | quote }}
 spec:
@@ -89,89 +18,17 @@ spec:
   selector:
     deploymentConfig: sso
 ---
-apiVersion: image.openshift.io/v1
-kind: ImageStream
-metadata:
-  labels:
-    application: sso-postgresql-ssl
-    rhsso: 7.6.0.GA
-    template: sso76-x509-postgresql-persistent
-  name: sso-postgresql-ssl
-  namespace: {{ .Values.projectName | quote }}
-  annotations:
-    argocd.argoproj.io/sync-wave: "5"
----
-apiVersion: build.openshift.io/v1
-kind: BuildConfig
-metadata:
-  annotations:
-    description: Build config to extend the vanilla PostgreSQL SQL database server
-      container image with SSL/TLS support.
-    argocd.argoproj.io/sync-wave: "5"
-  labels:
-    application: sso
-    rhsso: 7.6.0.GA
-    template: sso76-x509-postgresql-persistent
-  name: sso-postgresql-enable-ssl
-  namespace: {{ .Values.projectName | quote }}
-spec:
-  output:
-    to:
-      kind: ImageStreamTag
-      name: sso-postgresql-ssl:latest
-  source:
-    contextDir: s2i/postgresql/enable-ssl
-    git:
-      ref: KEYCLOAK-15633
-      uri: https://github.com/iankko/redhat-sso-7-openshift-image
-    type: Git
-  strategy:
-    sourceStrategy:
-      env:
-      - name: ARTIFACT_DIR
-        value: ${ARTIFACT_DIR}
-      - name: MAVEN_ARGS_APPEND
-      forcePull: true
-      from:
-        kind: ImageStreamTag
-        name: postgresql13-for-sso76-openshift-rhel8:13-el8
-    type: Source
-  triggers:
-  - imageChange: {}
-    type: ImageChange
-  - type: ConfigChange
----
 apiVersion: v1
 kind: Service
 metadata:
   annotations:
-    argocd.argoproj.io/sync-wave: "5"
-    description: The database server's port.
-    service.alpha.openshift.io/serving-cert-secret-name: postgresql-ssl-secret
-  labels:
-    application: sso
-    rhsso: 7.6.0.GA
-    template: sso76-x509-postgresql-persistent
-  name: sso-postgresql
-  namespace: {{ .Values.projectName | quote }}
-spec:
-  ports:
-  - port: 5432
-    targetPort: 5432
-  selector:
-    deploymentConfig: sso-postgresql
----
-apiVersion: v1
-kind: Service
-metadata:
-  annotations:
-    argocd.argoproj.io/sync-wave: "5"
-    description: The JGroups ping port for clustering.
+    argocd.argoproj.io/sync-wave: "10"
     service.alpha.openshift.io/serving-cert-secret-name: sso-x509-jgroups-secret
   labels:
-    application: sso
-    rhsso: 7.6.0.GA
-    template: sso76-x509-postgresql-persistent
+    app.kubernetes.io/name: sso
+    app.kubernetes.io/version: '7.6.0.GA'
+    app.kubernetes.io/component: keycloak
+    app.kubernetes.io/instance: keycloak
   name: sso-ping
   namespace: {{ .Values.projectName | quote }}
 spec:
@@ -187,12 +44,12 @@ apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
   annotations:
-    argocd.argoproj.io/sync-wave: "5"
-    description: Route for application's https service.
+    argocd.argoproj.io/sync-wave: "10"
   labels:
-    application: sso
-    rhsso: 7.6.0.GA
-    template: sso76-x509-postgresql-persistent
+    app.kubernetes.io/name: sso
+    app.kubernetes.io/version: '7.6.0.GA'
+    app.kubernetes.io/component: keycloak
+    app.kubernetes.io/instance: keycloak
   name: sso
   namespace: {{ .Values.projectName | quote }}
 spec:
@@ -203,29 +60,31 @@ spec:
     kind: Service
     name: sso
 ---
-apiVersion: apps.openshift.io/v1
-kind: DeploymentConfig
+apiVersion: apps/v1
+kind: Deployment
 metadata:
   annotations:
-    argocd.argoproj.io/sync-wave: "5"
+    argocd.argoproj.io/sync-wave: "10"
   labels:
-    application: sso
-    rhsso: 7.6.0.GA
-    template: sso76-x509-postgresql-persistent
+    app.kubernetes.io/name: sso
+    app.kubernetes.io/version: '7.6.0.GA'
+    app.kubernetes.io/component: keycloak
+    app.kubernetes.io/instance: keycloak
   name: sso
   namespace: {{ .Values.projectName | quote }}
 spec:
   replicas: 1
   selector:
-    deploymentConfig: sso
-  strategy:
-    type: Recreate
+    matchLabels:
+      app.kubernetes.io/name: sso
+      app.kubernetes.io/component: keycloak
+      app.kubernetes.io/instance: keycloak
   template:
     metadata:
       labels:
-        application: sso
-        deploymentConfig: sso
-      name: sso
+        app.kubernetes.io/name: sso
+        app.kubernetes.io/component: keycloak
+        app.kubernetes.io/instance: keycloak
     spec:
       containers:
       - env:
@@ -233,6 +92,10 @@ spec:
           value: {{ .Values.sso.hostname | quote }}
         - name: DB_SERVICE_PREFIX_MAPPING
           value: sso-postgresql=DB
+        - name: SSO_POSTGRESQL_SERVICE_HOST
+          value: postgresql-server
+        - name: SSO_POSTGRESQL_SERVICE_PORT
+          value: "5432"
         - name: DB_JNDI
           value: java:jboss/datasources/KeycloakDS
         - name: DB_USERNAME
@@ -269,7 +132,7 @@ spec:
         - name: SSO_REALM
         - name: SSO_SERVICE_USERNAME
         - name: SSO_SERVICE_PASSWORD
-        image: sso
+        image: registry.redhat.io/rh-sso-7/sso76-openshift-rhel8:7.6
         imagePullPolicy: Always
         livenessProbe:
           failureThreshold: 3
@@ -318,7 +181,7 @@ spec:
         - mountPath: /etc/x509/jgroups
           name: sso-x509-jgroups-volume
           readOnly: true
-      terminationGracePeriodSeconds: 75
+      terminationGracePeriodSeconds: 30
       volumes:
       - name: sso-x509-https-volume
         secret:
@@ -326,124 +189,3 @@ spec:
       - name: sso-x509-jgroups-volume
         secret:
           secretName: sso-x509-jgroups-secret
-  triggers:
-  - imageChangeParams:
-      automatic: true
-      containerNames:
-      - sso
-      from:
-        kind: ImageStreamTag
-        name: sso76-openshift-rhel8:7.6
-    type: ImageChange
-  - type: ConfigChange
----
-apiVersion: apps.openshift.io/v1
-kind: DeploymentConfig
-metadata:
-  annotations:
-    argocd.argoproj.io/sync-wave: "5"
-  labels:
-    application: sso
-    rhsso: 7.6.0.GA
-    template: sso76-x509-postgresql-persistent
-  name: sso-postgresql
-  namespace: {{ .Values.projectName | quote }}
-spec:
-  replicas: 1
-  selector:
-    deploymentConfig: sso-postgresql
-  strategy:
-    type: Recreate
-  template:
-    metadata:
-      labels:
-        application: sso
-        deploymentConfig: sso-postgresql
-      name: sso-postgresql
-    spec:
-      containers:
-      - env:
-        - name: POSTGRESQL_USER
-          value: sso
-        - name: POSTGRESQL_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: demo-seed
-              key: sso-database-password
-        - name: POSTGRESQL_DATABASE
-          value: sso
-        - name: POSTGRESQL_MAX_CONNECTIONS
-        - name: POSTGRESQL_MAX_PREPARED_TRANSACTIONS
-        - name: POSTGRESQL_SHARED_BUFFERS
-        image: postgresql
-        imagePullPolicy: Always
-        livenessProbe:
-          failureThreshold: 3
-          initialDelaySeconds: 90
-          periodSeconds: 10
-          successThreshold: 1
-          tcpSocket:
-            port: 5432
-          timeoutSeconds: 10
-        name: sso-postgresql
-        ports:
-        - containerPort: 5432
-          protocol: TCP
-        readinessProbe:
-          exec:
-            command:
-            - /bin/sh
-            - -i
-            - -c
-            - PGSSLMODE=require psql -h 127.0.0.1 -U $POSTGRESQL_USER -q -d $POSTGRESQL_DATABASE
-              -c 'SELECT 1'
-          failureThreshold: 3
-          periodSeconds: 10
-          initialDelaySeconds: 90
-          successThreshold: 1
-          timeoutSeconds: 10
-        resources: {}
-        terminationMessagePath: /dev/termination-log
-        terminationMessagePolicy: File
-        volumeMounts:
-        - mountPath: /var/lib/pgsql/data
-          name: sso-postgresql-pvol
-        - mountPath: /etc/pki/postgresql
-          name: postgresql-ssl-volume
-          readOnly: true
-      terminationGracePeriodSeconds: 60
-      volumes:
-      - name: sso-postgresql-pvol
-        persistentVolumeClaim:
-          claimName: sso-postgresql-claim
-      - name: postgresql-ssl-volume
-        secret:
-          secretName: postgresql-ssl-secret
-  triggers:
-  - imageChangeParams:
-      automatic: true
-      containerNames:
-      - sso-postgresql
-      from:
-        kind: ImageStreamTag
-        name: sso-postgresql-ssl:latest
-    type: ImageChange
-  - type: ConfigChange
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  annotations:
-    argocd.argoproj.io/sync-wave: "5"
-  labels:
-    application: sso
-    rhsso: 7.6.0.GA
-    template: sso76-x509-postgresql-persistent
-  name: sso-postgresql-claim
-  namespace: {{ .Values.projectName | quote }}
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
