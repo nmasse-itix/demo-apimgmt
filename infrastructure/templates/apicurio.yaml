@@ -1,0 +1,572 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  labels:
+    app: apicurio
+  name: apicurio-postgresql-data
+  namespace: {{ .Values.projectName | quote }}
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  labels:
+    app: apicurio
+  name: apicurio-postgresql
+  namespace: {{ .Values.projectName | quote }}
+spec:
+  ports:
+  - name: postgresql
+    port: 5432
+    protocol: TCP
+    targetPort: 5432
+  selector:
+    name: apicurio-postgresql
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  labels:
+    app: apicurio
+  name: apicurio-postgresql
+  namespace: {{ .Values.projectName | quote }}
+spec:
+  replicas: 1
+  selector:
+    name: apicurio-postgresql
+  strategy:
+    activeDeadlineSeconds: 21600
+    recreateParams:
+      timeoutSeconds: 600
+    resources: {}
+    type: Recreate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        name: apicurio-postgresql
+    spec:
+      containers:
+      - env:
+        - name: POSTGRESQL_USER
+          value: apicurio
+        - name: POSTGRESQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: demo-seed
+              key: apicurio-database-password
+        - name: POSTGRESQL_DATABASE
+          value: apicurio
+        image: centos/postgresql-95-centos7
+        imagePullPolicy: Always
+        livenessProbe:
+          failureThreshold: 3
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          successThreshold: 1
+          tcpSocket:
+            port: 5432
+          timeoutSeconds: 1
+        name: postgresql
+        ports:
+        - containerPort: 5432
+          protocol: TCP
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -i
+            - -c
+            - psql -h 127.0.0.1 -U $POSTGRESQL_USER -q -d $POSTGRESQL_DATABASE -c
+              'SELECT 1'
+          failureThreshold: 3
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          limits:
+            memory: 512Mi
+        securityContext:
+          capabilities: {}
+          privileged: false
+        terminationMessagePath: /dev/termination-log
+        volumeMounts:
+        - mountPath: /var/lib/pgsql/data
+          name: postgresql-data
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: postgresql-data
+        persistentVolumeClaim:
+          claimName: apicurio-postgresql-data
+  test: false
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+  name: apicurio-api
+  namespace: {{ .Values.projectName | quote }}
+spec:
+  tags:
+  - from:
+      kind: DockerImage
+      name: apicurio/apicurio-studio-api:latest-release
+    importPolicy:
+      scheduled: true
+    name: latest-release
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  name: apicurio-ws
+  namespace: {{ .Values.projectName | quote }}
+spec:
+  tags:
+  - from:
+      kind: DockerImage
+      name: apicurio/apicurio-studio-ws:latest-release
+    importPolicy:
+      scheduled: true
+    name: latest-release
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  name: apicurio-ui
+  namespace: {{ .Values.projectName | quote }}
+spec:
+  tags:
+  - from:
+      kind: DockerImage
+      name: apicurio/apicurio-studio-ui:latest-release
+    importPolicy:
+      scheduled: true
+    name: latest-release
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  annotations:
+    prometheus.io/path: /system/metrics
+    prometheus.io/scrape: "true"
+  labels:
+    app: apicurio-studio-api
+  name: apicurio-studio-api
+  namespace: {{ .Values.projectName | quote }}
+spec:
+  ports:
+  - port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app: apicurio-studio-api
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  annotations:
+    prometheus.io/path: /metrics
+    prometheus.io/scrape: "true"
+  labels:
+    app: apicurio-studio-ws
+  name: apicurio-studio-ws
+  namespace: {{ .Values.projectName | quote }}
+spec:
+  ports:
+  - port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app: apicurio-studio-ws
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  labels:
+    app: apicurio-studio-ui
+  name: apicurio-studio-ui
+  namespace: {{ .Values.projectName | quote }}
+spec:
+  ports:
+  - port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app: apicurio-studio-ui
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+  labels:
+    app: apicurio-studio-api
+  name: apicurio-studio-api
+  namespace: {{ .Values.projectName | quote }}
+spec:
+  replicas: 1
+  selector:
+    app: apicurio-studio-api
+    deploymentconfig: apicurio-studio-api
+  strategy:
+    activeDeadlineSeconds: 21600
+    recreateParams:
+      timeoutSeconds: 600
+    resources: {}
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: apicurio-studio-api
+        deploymentconfig: apicurio-studio-api
+    spec:
+      containers:
+      - env:
+        - name: APICURIO_KC_AUTH_URL
+          value: {{ (printf "https://%s/auth" .Values.sso.hostname) | quote }}
+        - name: APICURIO_KC_REALM
+          value: apicurio
+        - name: APICURIO_DB_DRIVER_NAME
+          value: postgresql
+        - name: APICURIO_DB_CONNECTION_URL
+          value: jdbc:postgresql://apicurio-postgresql:5432/apicurio
+        - name: APICURIO_DB_TYPE
+          value: postgresql9
+        - name: APICURIO_DB_USER_NAME
+          value: apicurio
+        - name: APICURIO_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: apicurio-database-password
+              name: demo-seed
+        - name: APICURIO_MIN_HEAP
+          value: 512m
+        - name: APICURIO_MAX_HEAP
+          value: 1400m
+        image: api:latest-release
+        imagePullPolicy: Always
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /system/ready
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        name: apicurio-studio-api
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /system/ready
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: "1"
+            memory: 1700Mi
+          requests:
+            cpu: 100m
+            memory: 800Mi
+        terminationMessagePath: /dev/termination-log
+      dnsPolicy: ClusterFirst
+      replicas: 1
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+  triggers:
+  - imageChangeParams:
+      automatic: true
+      containerNames:
+      - apicurio-studio-api
+      from:
+        kind: ImageStreamTag
+        name: apicurio-api:latest-release
+    type: ImageChange
+  - type: ConfigChange
+---
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+  labels:
+    app: apicurio-studio-ws
+  name: apicurio-studio-ws
+  namespace: {{ .Values.projectName | quote }}
+spec:
+  replicas: 1
+  selector:
+    app: apicurio-studio-ws
+    deploymentconfig: apicurio-studio-ws
+  strategy:
+    activeDeadlineSeconds: 21600
+    recreateParams:
+      timeoutSeconds: 600
+    resources: {}
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: apicurio-studio-ws
+        deploymentconfig: apicurio-studio-ws
+    spec:
+      containers:
+      - env:
+        - name: APICURIO_DB_DRIVER_NAME
+          value: postgresql
+        - name: APICURIO_DB_CONNECTION_URL
+          value: jdbc:postgresql://apicurio-postgresql:5432/apicurio
+        - name: APICURIO_DB_TYPE
+          value: postgresql9
+        - name: APICURIO_DB_USER_NAME
+          value: apicurio
+        - name: APICURIO_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: apicurio-database-password
+              name: demo-seed
+        - name: APICURIO_MIN_HEAP
+          value: 512m
+        - name: APICURIO_MAX_HEAP
+          value: 1400m
+        image: ws:latest-release
+        imagePullPolicy: Always
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /metrics
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        name: apicurio-studio-ws
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /metrics
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: "1"
+            memory: 1800Mi
+          requests:
+            cpu: 100m
+            memory: 900Mi
+        terminationMessagePath: /dev/termination-log
+      dnsPolicy: ClusterFirst
+      replicas: 1
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+  triggers:
+  - imageChangeParams:
+      automatic: true
+      containerNames:
+      - apicurio-studio-ws
+      from:
+        kind: ImageStreamTag
+        name: apicurio-ws:latest-release
+    type: ImageChange
+  - type: ConfigChange
+---
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+  labels:
+    app: apicurio-studio-ui
+  name: apicurio-studio-ui
+  namespace: {{ .Values.projectName | quote }}
+spec:
+  replicas: 1
+  selector:
+    app: apicurio-studio-ui
+    deploymentconfig: apicurio-studio-ui
+  strategy:
+    activeDeadlineSeconds: 21600
+    recreateParams:
+      timeoutSeconds: 600
+    resources: {}
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: apicurio-studio-ui
+        deploymentconfig: apicurio-studio-ui
+    spec:
+      containers:
+      - env:
+        - name: APICURIO_KC_AUTH_URL
+          value: {{ (printf "https://%s/auth" .Values.sso.hostname) | quote }}
+        - name: APICURIO_KC_REALM
+          value: apicurio
+        - name: APICURIO_UI_HUB_API_URL
+          value: {{ (printf "https://%s" .Values.apicurio.apiHostname) | quote }}
+        - name: APICURIO_UI_EDITING_URL
+          value: {{ (printf "wss://%s" .Values.apicurio.wsHostname) | quote }}
+        - name: APICURIO_UI_LOGOUT_REDIRECT_URI
+          value: /
+        - name: APICURIO_MIN_HEAP
+          value: 512m
+        - name: APICURIO_MAX_HEAP
+          value: 1200m
+        image: ui:latest-release
+        imagePullPolicy: Always
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /ready
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        name: apicurio-studio-ui
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /ready
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: "1"
+            memory: 1500Mi
+          requests:
+            cpu: 100m
+            memory: 700Mi
+        terminationMessagePath: /dev/termination-log
+      dnsPolicy: ClusterFirst
+      replicas: 1
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+  triggers:
+  - imageChangeParams:
+      automatic: true
+      containerNames:
+      - apicurio-studio-ui
+      from:
+        kind: ImageStreamTag
+        name: apicurio-ui:latest-release
+    type: ImageChange
+  - type: ConfigChange
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  labels:
+    app: apicurio-studio-api
+  name: apicurio-studio-api
+  namespace: {{ .Values.projectName | quote }}
+spec:
+  host: {{ .Values.apicurio.apiHostname | quote }}
+  tls:
+    insecureEdgeTerminationPolicy: Redirect
+    termination: edge
+  to:
+    kind: Service
+    name: apicurio-studio-api
+    weight: 100
+  wildcardPolicy: None
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  labels:
+    app: apicurio-studio-ws
+  name: apicurio-studio-ws
+  namespace: {{ .Values.projectName | quote }}
+spec:
+  host: {{ .Values.apicurio.wsHostname | quote }}
+  tls:
+    insecureEdgeTerminationPolicy: Redirect
+    termination: edge
+  to:
+    kind: Service
+    name: apicurio-studio-ws
+    weight: 100
+  wildcardPolicy: None
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+  labels:
+    app: apicurio-studio-ui
+  name: apicurio-studio-ui
+  namespace: {{ .Values.projectName | quote }}
+spec:
+  host: {{ .Values.apicurio.uiHostname | quote }}
+  tls:
+    insecureEdgeTerminationPolicy: Redirect
+    termination: edge
+  to:
+    kind: Service
+    name: apicurio-studio-ui
+    weight: 100
+  wildcardPolicy: None

@@ -10,3 +10,27 @@ spec:
   name: microcks
   source: community-operators
   sourceNamespace: openshift-marketplace
+---
+apiVersion: microcks.github.io/v1alpha1
+kind: MicrocksInstall
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "20"
+  name: microcks
+  namespace: {{ .Values.projectName | quote }}
+spec:
+  name: microcks
+  version: "latest"
+  microcks: 
+    replicas: 1
+    url: {{ .Values.microcks.hostname | quote }}
+  postman:
+    replicas: 1
+  keycloak:
+    install: false
+    url: {{ .Values.sso.hostname | quote }}
+  mongodb:
+    install: true
+    persistent: true
+    volumeSize: 2Gi
+    replicas: 1

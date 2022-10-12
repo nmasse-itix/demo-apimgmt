@@ -1,2 +1,8 @@
 sso:
   hostname: "sso-demo-apimgmt.apps.appdev.itix.xyz"
+microcks:
+  hostname: "microcks-demo-apimgmt.apps.appdev.itix.xyz"
+apicurio:
+  uiHostname: "apicurio-demo-apimgmt.apps.appdev.itix.xyz"
+  apiHostname: "apicurio-api-demo-apimgmt.apps.appdev.itix.xyz"
+  wsHostname: "apicurio-ws-demo-apimgmt.apps.appdev.itix.xyz"
