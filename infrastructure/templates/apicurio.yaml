@@ -312,7 +312,6 @@ spec:
             memory: 800Mi
         terminationMessagePath: /dev/termination-log
       dnsPolicy: ClusterFirst
-      replicas: 1
       restartPolicy: Always
       terminationGracePeriodSeconds: 30
   triggers:
@@ -406,7 +405,6 @@ spec:
             memory: 900Mi
         terminationMessagePath: /dev/termination-log
       dnsPolicy: ClusterFirst
-      replicas: 1
       restartPolicy: Always
       terminationGracePeriodSeconds: 30
   triggers:
@@ -497,7 +495,6 @@ spec:
             memory: 700Mi
         terminationMessagePath: /dev/termination-log
       dnsPolicy: ClusterFirst
-      replicas: 1
       restartPolicy: Always
       terminationGracePeriodSeconds: 30
   triggers:
