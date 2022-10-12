@@ -22,3 +22,7 @@ spec:
     automated:
       prune: true
       selfHeal: false
+  ignoreDifferences:
+    - jqPathExpressions:
+        - .spec.template.spec.containers[].image
+      kind: DeploymentConfig
