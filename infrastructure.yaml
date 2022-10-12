@@ -25,4 +25,9 @@ spec:
   ignoreDifferences:
     - jqPathExpressions:
         - .spec.template.spec.containers[].image
+      group: apps.openshift.io
       kind: DeploymentConfig
+    - jqPathExpressions:
+        - .spec.tags[].generation
+      group: image.openshift.io
+      kind: ImageStream
