@@ -33,3 +33,4 @@ data:
   sso-admin-password: {{ trunc 16 (sha256sum (cat .Values.masterKey "sso-admin-password")) | b64enc | quote }}
   sso-database-password: {{ trunc 16 (sha256sum (cat .Values.masterKey "sso-database-password")) | b64enc | quote }}
   apicurio-database-password: {{ trunc 16 (sha256sum (cat .Values.masterKey "sso-apicurio-password")) | b64enc | quote }}
+  microcks-client-secret: {{ trunc 16 (sha256sum (cat .Values.masterKey "microcks-client-secret")) | b64enc | quote }}

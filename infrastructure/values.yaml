@@ -1,3 +1,5 @@
 sso:
   hostname: ""
 projectName: demo-apimgmt
+threescale:
+  wildcardDomain: ""

@@ -11,3 +11,12 @@ spec:
   source: redhat-operators
   sourceNamespace: openshift-marketplace
 ---
+apiVersion: apps.3scale.net/v1alpha1
+kind: APIManager
+metadata:
+  name: 3scale-install
+  namespace: 3scale
+spec:
+  productVersion: "2.12"
+  wildcardDomain: {{ .Values.threescale.wildcardDomain | quote }}
+  resourceRequirementsEnabled: true

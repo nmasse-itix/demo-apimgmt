@@ -6,3 +6,5 @@ apicurio:
   uiHostname: "apicurio-demo-apimgmt.apps.appdev.itix.xyz"
   apiHostname: "apicurio-api-demo-apimgmt.apps.appdev.itix.xyz"
   wsHostname: "apicurio-ws-demo-apimgmt.apps.appdev.itix.xyz"
+threescale:
+  wildcardDomain: apps.appdev.itix.xyz

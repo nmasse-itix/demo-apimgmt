@@ -119,6 +119,15 @@ spec:
           value: 512m
         - name: APICURIO_MAX_HEAP
           value: 1400m
+        - name: APICURIO_MICROCKS_API_URL
+          value: {{ (printf "https://%s/api" .Values.microcks.hostname) | quote }}
+        - name: APICURIO_MICROCKS_CLIENT_ID
+          value: microcks-serviceaccount
+        - name: APICURIO_MICROCKS_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              key: microcks-client-secret
+              name: demo-seed
         image: apicurio/apicurio-studio-api:latest-release
         imagePullPolicy: Always
         livenessProbe:
@@ -278,6 +287,8 @@ spec:
           value: 512m
         - name: APICURIO_MAX_HEAP
           value: 1200m
+        - name: APICURIO_UI_FEATURE_MICROCKS
+          value: "true"
         image: apicurio/apicurio-studio-ui:latest-release
         imagePullPolicy: Always
         livenessProbe:
