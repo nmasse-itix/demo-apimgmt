@@ -17,6 +17,5 @@ metadata:
   name: 3scale-install
   namespace: 3scale
 spec:
-  productVersion: "2.12"
   wildcardDomain: {{ .Values.threescale.wildcardDomain | quote }}
   resourceRequirementsEnabled: true
