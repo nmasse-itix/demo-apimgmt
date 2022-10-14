@@ -16,7 +16,9 @@ spec:
   - port: 8443
     targetPort: 8443
   selector:
-    deploymentConfig: sso
+    app.kubernetes.io/name: sso
+    app.kubernetes.io/component: keycloak
+    app.kubernetes.io/instance: keycloak
 ---
 apiVersion: v1
 kind: Service
@@ -38,7 +40,9 @@ spec:
     port: 8888
   publishNotReadyAddresses: true
   selector:
-    deploymentConfig: sso
+    app.kubernetes.io/name: sso
+    app.kubernetes.io/component: keycloak
+    app.kubernetes.io/instance: keycloak
 ---
 apiVersion: route.openshift.io/v1
 kind: Route
@@ -59,6 +63,7 @@ spec:
   to:
     kind: Service
     name: sso
+    port: 8443
 ---
 apiVersion: apps/v1
 kind: Deployment
