@@ -193,3 +193,298 @@ spec:
       - name: sso-x509-jgroups-volume
         secret:
           secretName: sso-x509-jgroups-secret
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "30"
+  labels:
+    app.kubernetes.io/name: sso
+    app.kubernetes.io/version: '7.6.0.GA'
+    app.kubernetes.io/component: kcadm
+    app.kubernetes.io/instance: keycloak-config-job
+  name: sso-configuration
+  namespace: {{ .Values.projectName | quote }}
+data:
+  configure-sso.sh: |
+    #!/bin/bash
+
+    set -Eeuo pipefail
+
+    mkdir -p /tmp/bin
+    curl -sLo /tmp/bin/jq https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64
+    chmod 755 /tmp/bin/jq
+    export PATH="/tmp/bin:/opt/jboss/keycloak/bin:$PATH"
+
+    echo "========================================================================"
+    echo " Connecting to Red Hat SSO"
+    echo "========================================================================"
+    echo
+
+    while ! curl -sfo /dev/null "https://$SSO_HOSTNAME/auth/realms/master/.well-known/openid-configuration"; do
+        echo "Red Hat SSO not ready..."
+        sleep 5
+    done
+
+    kcadm.sh config credentials --server "https://$SSO_HOSTNAME/auth" --realm master --user "$SSO_ADMIN_USERNAME" --client admin-cli --password "$SSO_ADMIN_PASSWORD"
+
+    echo
+
+    echo "========================================================================"
+    echo " Configuring Microcks"
+    echo "========================================================================"
+    echo
+
+    if ! kcadm.sh get realms/microcks &>/dev/null; then
+        echo "Creating the Microcks realm..."
+        curl -so /tmp/microcks-realm.json https://raw.githubusercontent.com/microcks/microcks/master/install/docker-compose/keycloak-realm/microcks-realm-sample.json
+        kcadm.sh create realms -f /tmp/microcks-realm.json
+    fi
+
+    export CLIENT_ID="$(kcadm.sh get clients -r microcks -q clientId=microcks-app-js|jq -r '.[0].id')"
+    echo "client microcks-app-js has id $CLIENT_ID"
+    kcadm.sh update "clients/$CLIENT_ID" -r microcks -s "redirectUris=[\"https://$MICROCKS_HOSTNAME/*\"]"
+
+    if ! kcadm.sh get identity-provider/instances -r microcks | jq -r .[].alias | grep -qx google; then
+        kcadm.sh create identity-provider/instances -r microcks -f - <<EOF
+    {
+      "alias" : "google",
+      "providerId" : "google",
+      "enabled" : true,
+      "updateProfileFirstLoginMode" : "on",
+      "trustEmail" : true,
+      "storeToken" : false,
+      "addReadTokenRoleOnCreate" : false,
+      "authenticateByDefault" : false,
+      "linkOnly" : false,
+      "firstBrokerLoginFlowAlias" : "first broker login",
+      "config" : {
+        "hostedDomain" : "$GOOGLE_HOSTED_DOMAIN",
+        "userIp" : "true",
+        "clientSecret" : "$GOOGLE_CLIENT_SECRET",
+        "clientId" : "$GOOGLE_CLIENT_ID",
+        "useJwksUrl" : "true"
+      }
+    }
+    EOF
+    fi
+
+    IDP_REDIRECTOR_ID=$(kcadm.sh get authentication/flows/browser/executions -r microcks |jq -r '.[]|select(.providerId == "identity-provider-redirector").id')
+    echo "IDP redirector id is: $IDP_REDIRECTOR_ID"
+
+    kcadm.sh create authentication/executions/$IDP_REDIRECTOR_ID/config -r microcks -f - <<EOF
+    {
+      "alias" : "google-auth",
+      "config" : {
+        "defaultProvider" : "google"
+      }
+    }
+    EOF
+
+    MICROCKS_ID="$(kcadm.sh get clients -r microcks -q clientId=microcks-serviceaccount|jq -r '.[0].id')"
+    echo "client microcks-serviceaccount has id $MICROCKS_ID"
+    kcadm.sh update "clients/$MICROCKS_ID" -r microcks -s "secret=$MICROCKS_CLIENT_SECRET"
+
+    echo
+
+    echo "========================================================================"
+    echo " Configuring Apicurio"
+    echo "========================================================================"
+    echo
+
+    if ! kcadm.sh get realms/apicurio &>/dev/null; then
+        echo "Creating the Apicurio realm..."
+        curl -so /tmp/apicurio-realm-template.json https://raw.githubusercontent.com/Apicurio/apicurio-studio/master/distro/openshift/auth/realm.json
+        sed "s|APICURIO_UI_URL|https://$APICURIO_UI_HOSTNAME|g" /tmp/apicurio-realm-template.json > /tmp/apicurio-realm.json
+        kcadm.sh create realms -f /tmp/apicurio-realm.json
+    fi
+
+    if ! kcadm.sh get identity-provider/instances -r apicurio | jq -r .[].alias | grep -qx google; then
+        kcadm.sh create identity-provider/instances -r apicurio -f - <<EOF
+    {
+      "alias" : "google",
+      "providerId" : "google",
+      "enabled" : true,
+      "updateProfileFirstLoginMode" : "on",
+      "trustEmail" : true,
+      "storeToken" : false,
+      "addReadTokenRoleOnCreate" : false,
+      "authenticateByDefault" : false,
+      "linkOnly" : false,
+      "firstBrokerLoginFlowAlias" : "first broker login",
+      "config" : {
+        "hostedDomain" : "$GOOGLE_HOSTED_DOMAIN",
+        "userIp" : "true",
+        "clientSecret" : "$GOOGLE_CLIENT_SECRET",
+        "clientId" : "$GOOGLE_CLIENT_ID",
+        "useJwksUrl" : "true"
+      }
+    }
+    EOF
+    fi
+
+    IDP_REDIRECTOR_ID=$(kcadm.sh get authentication/flows/browser/executions -r apicurio |jq -r '.[]|select(.providerId == "identity-provider-redirector").id')
+    echo "IDP redirector id is: $IDP_REDIRECTOR_ID"
+
+    kcadm.sh create "authentication/executions/$IDP_REDIRECTOR_ID/config" -r apicurio -f - <<EOF
+    {
+      "alias" : "google-auth",
+      "config" : {
+        "defaultProvider" : "google"
+      }
+    }
+    EOF
+
+    kcadm.sh update realms/apicurio -s accountTheme=rh-sso -s adminTheme=rh-sso -s emailTheme=rh-sso -s loginTheme=rh-sso
+
+
+    if ! kcadm.sh get identity-provider/instances -r apicurio | jq -r .[].alias | grep -qx github; then
+        kcadm.sh create identity-provider/instances -r apicurio -f - <<EOF
+    {
+      "alias" : "github",
+      "providerId" : "github",
+      "enabled" : true,
+      "updateProfileFirstLoginMode" : "on",
+      "trustEmail" : true,
+      "storeToken" : true,
+      "addReadTokenRoleOnCreate" : true,
+      "authenticateByDefault" : false,
+      "linkOnly" : false,
+      "firstBrokerLoginFlowAlias" : "first broker login",
+      "config" : {
+        "clientSecret" : "$GITHUB_CLIENT_SECRET",
+        "clientId" : "$GITHUB_CLIENT_ID",
+        "defaultScope" : "read:org,repo,user:email",
+        "useJwksUrl" : "true"
+      }
+    }
+    EOF
+    fi
+
+    echo
+
+    echo "========================================================================"
+    echo " Configuring 3scale"
+    echo "========================================================================"
+    echo
+
+    if ! kcadm.sh get realms/3scale &>/dev/null; then
+        echo "Creating the 3scale realm..."
+        kcadm.sh create realms -s realm=3scale -s enabled=true
+        kcadm.sh create clients -r 3scale -s 'clientId=zync' -s 'standardFlowEnabled=false' -s 'directAccessGrantsEnabled=false' -s 'serviceAccountsEnabled=true' -s 'clientAuthenticatorType=client-secret' -s "secret=$ZYNC_CLIENT_SECRET"
+        ZYNC_CLIENT_ID="$(kcadm.sh get clients -r 3scale -q clientId=zync |jq -r '.[0].id')"
+        RM_CLIENT_ID="$(kcadm.sh get clients -r 3scale -q clientId=realm-management |jq -r '.[0].id')"
+        ZYNC_USER_ID="$(kcadm.sh get clients/$ZYNC_CLIENT_ID/service-account-user -r 3scale |jq -r '.id')"
+        kcadm.sh get "clients/$RM_CLIENT_ID/roles" -q name=manage-clients -r 3scale |jq -r '[ .[] | select(.name == "manage-clients") ]' | kcadm.sh create "users/$ZYNC_USER_ID/role-mappings/clients/$RM_CLIENT_ID" -r 3scale -f -
+    fi
+
+    exit 0
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "30"
+  labels:
+    app.kubernetes.io/name: sso
+    app.kubernetes.io/version: '7.6.0.GA'
+    app.kubernetes.io/component: kcadm
+    app.kubernetes.io/instance: keycloak-config-job
+  name: sso-configuration
+  namespace: {{ .Values.projectName | quote }}
+type: Opaque
+data:
+  googleClientId: {{ .Values.googleClientId | b64enc | quote }}
+  googleClientSecret: {{ .Values.googleClientSecret | b64enc | quote }}
+  githubClientId: {{ .Values.githubClientId | b64enc | quote }}
+  githubClientSecret: {{ .Values.githubClientSecret | b64enc | quote }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "30"
+  labels:
+    app.kubernetes.io/name: sso
+    app.kubernetes.io/version: '7.6.0.GA'
+    app.kubernetes.io/component: kcadm
+    app.kubernetes.io/instance: keycloak-config-job
+  name: sso-configuration
+  namespace: {{ .Values.projectName | quote }}
+spec:
+  backoffLimit: 30
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: sso
+        app.kubernetes.io/version: '7.6.0.GA'
+        app.kubernetes.io/component: kcadm
+        app.kubernetes.io/instance: keycloak-config-job
+    spec:
+      containers:
+      - name: kcadm
+        command:
+        - /entrypoint/configure-sso.sh
+        args: []
+        image: quay.io/keycloak/keycloak:18.0.2-legacy
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: SSO_HOSTNAME
+          value: {{ .Values.sso.hostname | quote }}
+        - name: MICROCKS_HOSTNAME
+          value: {{ .Values.microcks.hostname | quote }}
+        - name: APICURIO_UI_HOSTNAME
+          value: {{ .Values.apicurio.uiHostname | quote }}
+        - name: SSO_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: demo-seed
+              key: sso-admin-password
+        - name: SSO_ADMIN_USERNAME
+          value: admin
+        - name: GOOGLE_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: sso-configuration
+              key: googleClientId
+        - name: GOOGLE_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: sso-configuration
+              key: googleClientSecret
+        - name: GITHUB_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: sso-configuration
+              key: githubClientId
+        - name: GITHUB_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: sso-configuration
+              key: githubClientSecret
+        - name: ZYNC_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: demo-seed
+              key: zync-client-secret
+        - name: MICROCKS_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: demo-seed
+              key: zync-client-secret
+        - name: USER
+          value: kcadm
+        - name: HOME
+          value: /tmp
+        volumeMounts:
+        - mountPath: /entrypoint
+          name: sso-configuration-script
+          readOnly: true
+      restartPolicy: OnFailure
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: sso-configuration-script
+        configMap:
+          name: sso-configuration
+          defaultMode: 0755

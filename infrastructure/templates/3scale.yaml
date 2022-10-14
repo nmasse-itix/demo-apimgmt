@@ -11,11 +11,42 @@ spec:
   source: redhat-operators
   sourceNamespace: openshift-marketplace
 ---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+  name: system-database
+  namespace: {{ .Values.projectName | quote }}
+stringData:
+  URL: "postgresql://3scale:{{ include "3scale-database-password" . }}@postgresql-server:5432/3scale"
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+  name: zync
+  namespace: {{ .Values.projectName | quote }}
+stringData:
+  DATABASE_URL: postgresql://zync:{{ include "zync-database-password" . }}@postgresql-server:5432/zync
+  ZYNC_DATABASE_PASSWORD: {{ include "zync-database-password" . | quote }}
+type: Opaque
+
+---
 apiVersion: apps.3scale.net/v1alpha1
 kind: APIManager
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "20"
   name: 3scale-install
   namespace: {{ .Values.projectName | quote }}
 spec:
   wildcardDomain: {{ .Values.threescale.wildcardDomain | quote }}
   resourceRequirementsEnabled: true
+  externalComponents:
+    zync:
+      database: true
+    system:
+      database: true

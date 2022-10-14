@@ -6,6 +6,9 @@ rules:
 - apiGroups: [""]
   resources: ["secrets","services","pvc"]
   verbs: ["*"]
+- apiGroups: ["apps"]
+  resources: ["statefulsets","deployments"]
+  verbs: ["*"]
 - apiGroups: ["project.openshift.io"]
   resources: ["projects"]
   verbs: ["*"]
@@ -26,6 +29,12 @@ rules:
   verbs: ["*"]
 - apiGroups: ["keycloak.org"]
   resources: ["keycloaks"]
+  verbs: ["*"]
+- apiGroups: ["microcks.github.io"]
+  resources: ["microcksinstalls"]
+  verbs: ["*"]
+- apiGroups: ["apps.3scale.net"]
+  resources: ["apimanagers"]
   verbs: ["*"]
 ---
 kind: ClusterRoleBinding

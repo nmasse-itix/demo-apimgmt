@@ -17,6 +17,14 @@ spec:
       parameters:
       - name: masterKey
         value: my-secret-value
+      - name: googleClientId
+        value: CHANGEME
+      - name: googleClientSecret
+        value: CHANGEME
+      - name: githubClientId
+        value: CHANGEME
+      - name: githubClientSecret
+        value: CHANGEME
   project: default
   syncPolicy:
     automated:

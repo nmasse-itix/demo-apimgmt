@@ -19,7 +19,9 @@ spec:
     protocol: TCP
     targetPort: 8080
   selector:
-    app: apicurio-studio-api
+    app.kubernetes.io/name: apicurio
+    app.kubernetes.io/component: apicurio-studio-api
+    app.kubernetes.io/instance: apicurio-studio-api
   sessionAffinity: None
   type: ClusterIP
 ---
@@ -44,7 +46,9 @@ spec:
     protocol: TCP
     targetPort: 8080
   selector:
-    app: apicurio-studio-ws
+    app.kubernetes.io/name: apicurio
+    app.kubernetes.io/component: apicurio-studio-ws
+    app.kubernetes.io/instance: apicurio-studio-ws
   sessionAffinity: None
   type: ClusterIP
 ---
@@ -66,7 +70,9 @@ spec:
     protocol: TCP
     targetPort: 8080
   selector:
-    app: apicurio-studio-ui
+    app.kubernetes.io/name: apicurio
+    app.kubernetes.io/component: apicurio-studio-ui
+    app.kubernetes.io/instance: apicurio-studio-ui
   sessionAffinity: None
   type: ClusterIP
 ---
