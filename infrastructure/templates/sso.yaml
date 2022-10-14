@@ -472,7 +472,7 @@ spec:
           valueFrom:
             secretKeyRef:
               name: demo-seed
-              key: zync-client-secret
+              key: microcks-client-secret
         - name: USER
           value: kcadm
         - name: HOME

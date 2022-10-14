@@ -33,7 +33,25 @@ stringData:
   DATABASE_URL: postgresql://zync:{{ include "zync-database-password" . }}@postgresql-server:5432/zync
   ZYNC_DATABASE_PASSWORD: {{ include "zync-database-password" . | quote }}
 type: Opaque
-
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+  name: apicast-custom-environment
+  namespace: {{ .Values.projectName | quote }}
+stringData:
+  custom.lua: |
+    local cjson = require('cjson')
+    local PolicyChain = require('apicast.policy_chain')
+    local policy_chain = context.policy_chain
+    policy_chain:insert( PolicyChain.load_policy('cors', 'builtin', { }), 1)
+    return {
+      policy_chain = policy_chain,
+      port = { metrics = 9421 },
+    }
+type: Opaque
 ---
 apiVersion: apps.3scale.net/v1alpha1
 kind: APIManager
@@ -50,3 +68,12 @@ spec:
       database: true
     system:
       database: true
+  apicast:
+    stagingSpec:
+      customEnvironments:
+        - secretRef:
+            name: apicast-custom-environment
+    productionSpec:
+      customEnvironments:
+        - secretRef:
+            name: apicast-custom-environment
